@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRG Labor — Today</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ember: #E8651A;
+      --ember-dim: #a34710;
+      --bg: #111110;
+      --surface: #1a1a18;
+      --surface-2: #222220;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0ede8;
+      --muted: #888780;
+      --faint: #444441;
+      --green: #1D9E75;
+      --red: #E24B4A;
+    }
+
+    body {
+      font-family: 'DM Mono', 'Courier New', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 0.5px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+
+    .wordmark {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .date-label {
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text);
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    #status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--faint);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    #status-text {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 4px 14px;
+      background: transparent;
+      border: 0.5px solid var(--faint);
+      color: var(--muted);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    button:hover { border-color: var(--muted); color: var(--text); }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+
+    .metric {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      color: var(--text);
+    }
+
+    /* Location grid */
+    .location-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .loc-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      transition: opacity 0.3s;
+    }
+
+    .loc-card.empty { opacity: 0.4; }
+
+    .loc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .loc-tag {
+      font-size: 10px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .loc-name {
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .loc-count {
+      font-size: 28px;
+      color: var(--ember);
+      line-height: 1;
+    }
+
+    .loc-hours {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    .loc-count.zero { color: var(--faint); }
+
+    .shift-list {
+      border-top: 0.5px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .shift-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .shift-row:last-child { border-bottom: none; }
+
+    .shift-name {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .shift-time {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .empty-msg {
+      font-size: 13px;
+      color: var(--faint);
+      text-align: center;
+      padding: 12px 0 4px;
+    }
+
+    .placeholder {
+      grid-column: 1 / -1;
+      padding: 2.5rem;
+      text-align: center;
+      color: var(--faint);
+      font-size: 13px;
+      border: 0.5px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    .error-box {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      background: rgba(226,75,74,0.08);
+      border: 0.5px solid rgba(226,75,74,0.3);
+      border-radius: 12px;
+      color: var(--red);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .error-box strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header>
+    <div>
+      <p class="wordmark">Saddleback Restaurant Group</p>
+      <p class="date-label" id="today-label">—</p>
+    </div>
+    <div class="status-bar">
+      <div id="status-dot"></div>
+      <span id="status-text">Connecting...</span>
+      <button onclick="loadData()">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="summary-grid">
+    <div class="metric"><p class="metric-label">Total shifts</p><p class="metric-value" id="s-shifts">—</p></div>
+    <div class="metric"><p class="metric-label">Staff today</p><p class="metric-value" id="s-staff">—</p></div>
+    <div class="metric"><p class="metric-label">Sched. hours</p><p class="metric-value" id="s-hours">—</p></div>
+    <div class="metric"><p class="metric-label">Locations</p><p class="metric-value" id="s-locs">—</p></div>
+  </div>
+
+  <div class="location-grid" id="location-grid">
+    <div class="placeholder">Fetching shift data...</div>
+  </div>
+
+  <div class="error-box" id="error-box">
+    <strong id="error-title">Error</strong>
+    <span id="error-detail"></span>
+  </div>
+
+  <script>
+    function setStatus(text, color) {
+      document.getElementById('status-text').textContent = text;
+      document.getElementById('status-dot').style.background = color;
+    }
+
+    async function proxy(path, params = {}) {
+      const qs = new URLSearchParams({ path, ...params }).toString();
+      const resp = await fetch('/api/7shifts?' + qs);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '?';
+      return new Date(iso).toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Detroit'
+      });
+    }
+
+    function shiftHrs(s) {
+      if (!s.start_time || !s.end_time) return 0;
+      return (new Date(s.end_time) - new Date(s.start_time)) / 3600000;
+    }
+
+    async function loadData() {
+      setStatus('Connecting...', '#E8651A');
+      document.getElementById('error-box').style.display = 'none';
+      document.getElementById('location-grid').innerHTML = '<div class="placeholder">Loading shifts...</div>';
+
+      try {
+        const companyResp = await proxy('/v2/company');
+        const companyId = companyResp.data.id;
+
+        setStatus('Fetching locations & staff...', '#E8651A');
+        const [locResp, userResp] = await Promise.all([
+          proxy('/v2/company/' + companyId + '/locations'),
+          proxy('/v2/company/' + companyId + '/users')
+        ]);
+
+        const locations = locResp.data || [];
+        const users = {};
+        (userResp.data || []).forEach(u => {
+          users[u.id] = (u.firstname + ' ' + u.lastname).trim();
+        });
+
+        setStatus("Fetching today's shifts...", '#E8651A');
+        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Detroit' }).format(new Date());
+        const shiftResp = await proxy('/v2/company/' + companyId + '/shifts', {
+          'start_time[gte]': new Date(dateStr + 'T00:00:00-04:00').toISOString(),
+          'start_time[lte]': new Date(dateStr + 'T23:59:59-04:00').toISOString(),
+          limit: 500
+        });
+        const shifts = shiftResp.data || [];
+
+        const byLoc = {};
+        locations.forEach(l => { byLoc[l.id] = { loc: l, shifts: [] }; });
+        shifts.forEach(s => { if (byLoc[s.location_id]) byLoc[s.location_id].shifts.push(s); });
+
+        document.getElementById('s-shifts').textContent = shifts.length;
+        document.getElementById('s-staff').textContent = new Set(shifts.map(s => s.user_id).filter(Boolean)).size;
+        document.getElementById('s-hours').textContent = shifts.reduce((a, s) => a + shiftHrs(s), 0).toFixed(1) + 'h';
+        const activeLocs = Object.values(byLoc).filter(g => g.shifts.length > 0).length;
+        document.getElementById('s-locs').textContent = activeLocs + ' / ' + locations.length;
+
+        const grid = document.getElementById('location-grid');
+        grid.innerHTML = '';
+
+        Object.values(byLoc)
+          .sort((a, b) => b.shifts.length - a.shifts.length)
+          .forEach(({ loc, shifts: ls }) => {
+            const hrs = ls.reduce((a, s) => a + shiftHrs(s), 0);
+            const card = document.createElement('div');
+            card.className = 'loc-card' + (ls.length === 0 ? ' empty' : '');
+
+            const rows = ls.length > 0
+              ? ls.slice(0, 10).map(s => {
+                  const name = (s.user_id && users[s.user_id]) ? users[s.user_id] : 'Open shift';
+                  return `<div class="shift-row">
+                    <span class="shift-name">${name}</span>
+                    <span class="shift-time">${fmtTime(s.start_time)} – ${fmtTime(s.end_time)} &nbsp;${shiftHrs(s).toFixed(1)}h</span>
+                  </div>`;
+                }).join('')
+                + (ls.length > 10 ? `<p class="empty-msg">+${ls.length - 10} more</p>` : '')
+              : '<p class="empty-msg">No shifts scheduled</p>';
+
+            card.innerHTML = `
+              <div class="loc-header">
+                <div>
+                  <p class="loc-tag">Location</p>
+                  <p class="loc-name">${loc.name}</p>
+                </div>
+                <div>
+                  <p class="loc-count ${ls.length === 0 ? 'zero' : ''}">${ls.length}</p>
+                  <p class="loc-hours">${hrs.toFixed(1)}h sched.</p>
+                </div>
+              </div>
+              <div class="shift-list">${rows}</div>`;
+
+            grid.appendChild(card);
+          });
+
+        const t = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        setStatus('Live — updated ' + t, '#1D9E75');
+
+      } catch (err) {
+        document.getElementById('error-box').style.display = 'block';
+        document.getElementById('error-title').textContent = 'Error connecting to 7Shifts';
+        document.getElementById('error-detail').textContent = err.message;
+        setStatus('Error', '#E24B4A');
+        document.getElementById('location-grid').innerHTML = '';
+      }
+    }
+
+    document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Detroit'
+    });
+
+    loadData();
+  </script>
+</body>
+</html>
