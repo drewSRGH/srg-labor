@@ -114,15 +114,15 @@ async function loadData() {
 
   try {
     // v1 company endpoint
-    const companyResp = await proxy('/v1/company');
+    const companyResp = await proxy('/v2/companies');
     const company = companyResp.data?.company || companyResp.data;
     const companyId = company.id;
 
     setStatus('Fetching locations & staff...', '#E8651A');
 
     const [locResp, userResp] = await Promise.all([
-      proxy('/v1/locations', { company_id: companyId }),
-      proxy('/v1/users', { company_id: companyId, limit: 500 })
+      proxy('/v2/company/' + companyId + '/locations'),
+      proxy('/v2/company/' + companyId + '/users', { limit: 500 })
     ]);
 
     // v1 wraps each item: [{ location: {...} }]
@@ -137,7 +137,7 @@ async function loadData() {
 
     const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Detroit' }).format(new Date());
 
-    const shiftResp = await proxy('/v1/shifts', {
+    const shiftResp = await proxy('/v2/company/' + companyId + '/shifts', {
       company_id: companyId,
       start_date: dateStr,
       end_date: dateStr,
